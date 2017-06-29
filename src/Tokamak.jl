@@ -1,5 +1,6 @@
 module Tokamak
 
-# package code goes here
+include("syntax.jl")
+include("inference.jl")
 
 end # module

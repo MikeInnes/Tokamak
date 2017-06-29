@@ -1,5 +1,8 @@
-using Tokamak
+using Tokamak: @tk, infer
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+@tk diag(A)[i] = A[i,i]
+@tk trans(A)[i,j] = A[j,i]
+
+@test string(infer(diag)) == "(m, m) → (m)"
+@test string(infer(trans)) == "(m, n) → (n, m)"
