@@ -75,10 +75,14 @@ end
 
 iindex(f, ctx::Context, a...) = f(ctx, a...)
 
+function interp(ctx::Context, f, args...)
+  return Staged()
+end
+
 function infer(v::IVertex)
   inputs = [Staged() for i = 1:DataFlow.graphinputs(v)]
-  ctx = Context(mux(iline, iconst, iclosure, iargs, ituple, iindex,
-                (ctx, f, args...) -> f(args...)); types = Dict())
+  ctx = Context(mux(iline, iconst, iclosure, iargs, ituple, iindex, interp);
+                types = Dict())
   val = interpret(ctx, v, inputs...)
   Arrow([[lower(ctx, x)...] for x in [inputs..., val]])
 end
