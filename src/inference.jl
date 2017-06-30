@@ -57,8 +57,8 @@ function unify(ctx::Context, x::Staged, d::Tuple)
   return x
 end
 
-function iclosure(f, ctx::Context, ::DataFlow.Flosure, body, vars...)
-  v = DataFlow.flopen(body)
+function iclosure(f, ctx::Context, λ::DataFlow.Flosure, body, vars...)
+  v = DataFlow.flopen(λ, body)
   inputs = [DomainVar() for i = 1:DataFlow.graphinputs(v)]
   interpret(ctx, v, vars..., inputs...)
   unify(ctx, Staged(), (inputs...))
