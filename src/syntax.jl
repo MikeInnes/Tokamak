@@ -9,14 +9,7 @@ function desugar(ex)
   end
 end
 
-function graphm(args, body)
-  body = body |> MacroTools.flatten |> block |> DataFlow.graphm |> DataFlow.il
-  prewalk(body) do v
-    isconstant(v) && (i = findfirst(args, value(v[1]))) ≠ 0 ?
-      inputnode(i) :
-      v
-  end
-end
+graphm(args, body) = DataFlow.graphm(MacroTools.flatten(body), args = args)
 
 struct Func
   graph::IVertex{Any}
