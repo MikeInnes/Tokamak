@@ -5,7 +5,7 @@ using Base.Test
 @tk trans(A)[i,j] = A[j,i]
 @tk add(A,B)[i] = A[i] + B[i]
 @tk sum(xs) = reduce(+, 0, [i] -> xs[i])
-@tk mul(A,B)[i,j] = reduce(+, 0, [k] -> A[i,k]*B[k,j])
+@tk mul(A,B)[i,j] = sum([k] -> A[i,k]*B[k,j])
 
 @test string(infer(diag)) == "(m, m) → (m)"
 @test string(infer(trans)) == "(m, n) → (n, m)"

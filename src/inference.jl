@@ -100,6 +100,10 @@ function interp(ctx::Context, f, args...)
   return Staged()
 end
 
+function interp(ctx::Context, f::Func, args...)
+  interpret(ctx, f.graph, args...)
+end
+
 function infer_(v::IVertex)
   inputs = [Staged() for i = 1:DataFlow.graphinputs(v)]
   ctx = Context(mux(iline, iconst, iclosure, iargs, ituple, iindex, ireduce, interp);
