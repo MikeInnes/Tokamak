@@ -11,17 +11,6 @@ inline(f::Func, args...) = inline(f.graph, args...)
 
 # Skeleton
 
-subidx(x, xs)::Vector{Int} = []
-
-function subidx(x, xs::Vector)::Vector{Int}
-  for (i, x′) in enumerate(xs)
-    x == x′ && return [i]
-    sub = subidx(x, x′)
-    !isempty(sub) && return unshift!(sub, i)
-  end
-  return []
-end
-
 domains(a::Arrow) = map(d -> subidx(d, a.ts[1:end]), a.ts[end])
 
 function cpu(f::Func)

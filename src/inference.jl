@@ -1,5 +1,18 @@
 using DataFlow.Interpreter
 
+subidx(x, xs)::Vector{Int} = []
+
+function subidx(x, xs::AbstractVector)::Vector{Int}
+  for (i, x′) in enumerate(xs)
+    x == x′ && return [i]
+    sub = subidx(x, x′)
+    !isempty(sub) && return unshift!(sub, i)
+  end
+  return []
+end
+
+subidx(x, xs::Tuple) = subidx(x, collect(xs))
+
 const uid = Ref(UInt64(0))
 
 struct DomainVar
