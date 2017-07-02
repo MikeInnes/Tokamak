@@ -59,7 +59,7 @@ end
 
 function iclosure(f, ctx::Context, λ::DataFlow.Flosure, body, vars...)
   v = DataFlow.flopen(λ, body)
-  inputs = [DomainVar() for i = 1:DataFlow.graphinputs(v)]
+  inputs = [DomainVar() for i = 1:DataFlow.graphinputs(v) - length(vars)]
   interpret(ctx, v, vars..., inputs...)
   unify(ctx, Staged(), (inputs...))
 end
