@@ -4,7 +4,7 @@ using Base.Test
 @tk diag(A)[i] = A[i,i]
 @tk trans(A)[i,j] = A[j,i]
 @tk add(A,B)[i] = A[i] + B[i]
-@tk sum(xs) = reduce(+, 0, [i] -> xs[i])
+@tk sum(xs) = reduce(+, 0, xs)
 @tk mul(A,B)[i,j] = sum([k] -> A[i,k]*B[k,j])
 
 @test string(infer(diag)) == "(m, m) → (m)"
