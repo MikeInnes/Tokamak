@@ -8,6 +8,9 @@ ndloop(iters, body) =
        Expr(:block, [:($i = $xs) for (i, xs) in iters]...),
        body)
 
+syntax(v::IVertex) = DataFlow.syntax(v)
+syntax(x) = x
+
 struct SymbolicArray
   func
   dims
@@ -15,47 +18,37 @@ end
 
 Base.getindex(x::SymbolicArray, is...) = x.func(is...)
 domainm(x::SymbolicArray, i) = x.dims[i]
-indexm(x::SymbolicArray, i...) = DataFlow.syntax(x[i...])
+indexm(x::SymbolicArray, i...) = x[i...]
 
 interpid(ctx::Context, f, args...) = vertex(f, DataFlow.constant.(args)...)
 interpid(ctx::Context, f::Func, args...) = interpret(ctx, f.graph, args...)
+interpid(ctx::Context, ::typeof(getindex), xs, is...) = indexm(xs, is...)
 
 function interpid(ctx::Context, ::typeof(reduce), red, v0, v)
-  @assert DataFlow.isconstant(v)
-  v = value(v[1])
   i = gensym(:i)
   :(let
-    sum = $(DataFlow.syntax(v0))
-    $(ndloop([(i,domainm(v, 1))], :(sum += $(indexm(v, i)))))
+    sum = $v0
+    $(ndloop([(i,domainm(v, 1))], :(sum += $(syntax(indexm(v, i))))))
     sum
-  end) |> DataFlow.constant
+  end)
 end
 
 function isymbolic(_, ctx::Context, λ::DataFlow.Flosure, body, vars...)
   args = interpret.(ctx, vars)
-  f = (is...) -> interpret(ctx, DataFlow.flopen(λ, body), args..., is...)
-  dom = map(i -> domainin(i, DataFlow.syntax.(args)), ctx[:lambdas][λ])
-  DataFlow.constant(SymbolicArray(f, dom))
+  f = (is...) -> interpret(ctx, DataFlow.flopen(λ, body), args..., DataFlow.constant.(is)...)
+  dom = map(i -> domainin(i, args), ctx[:lambdas][λ])
+  return SymbolicArray(f, dom)
 end
 
 isymbolic(cb, a...) = cb(a...)
-
-function iindex(_, ctx::Context, ::typeof(getindex), xs, is...)
-  if DataFlow.isconstant(xs) && value(xs[1]) isa SymbolicArray
-    value(xs[1])[is...]
-  else
-    vertex(getindex, xs, is...)
-  end
-end
 
 iindex(cb, a...) = cb(a...)
 
 function inline(v::IVertex, args...)
   arrow, lambdas = infer_(v)
-  ctx = Context(mux(iline, isymbolic, iargs, ituple, iindex, interpid),
+  ctx = Context(mux(iline, isymbolic, iargs, iconst, ituple, interpid),
                 lambdas = lambdas)
   out = interpret(ctx, v, args...)
-  return DataFlow.isconstant(out) ? out[1].value : out
 end
 
 inline(f::Func, args...) = inline(f.graph, args...)
@@ -69,7 +62,7 @@ function cpu(f::Func)
     is = [gensym(:i) for _ in x.dims]
     :(function (out, $(args...),)
         $(ndloop(zip(is, x.dims),
-            :(out[$(is...)] = $(DataFlow.syntax(x[is...])))))
+            :(out[$(is...)] = $(syntax(x[is...])))))
         return out
       end)
   else
@@ -78,5 +71,3 @@ function cpu(f::Func)
       end)
   end
 end
-
-# cpu(mul) |> prettify
