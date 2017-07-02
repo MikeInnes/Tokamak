@@ -58,10 +58,11 @@ function unify(ctx::Context, x::Staged, d::Tuple)
 end
 
 function iclosure(f, ctx::Context, λ::DataFlow.Flosure, body, vars...)
-  v = DataFlow.flopen(λ, body)
-  inputs = [DomainVar() for i = 1:DataFlow.graphinputs(v) - length(vars)]
-  interpret(ctx, v, vars..., inputs...)
-  unify(ctx, Staged(), (inputs...))
+  v, args = DataFlow.flopen(λ, body), interpret.(ctx, vars)
+  idxs = [DomainVar() for i = 1:DataFlow.graphinputs(v) - length(args)]
+  interpret(ctx, v, args..., idxs...)
+  ctx[:lambdas][λ] = map(i -> subidx(i, lower.(ctx, args)), lower.(ctx, idxs))
+  return unify(ctx, Staged(), (idxs...))
 end
 
 iclosure(f, ctx::Context, args...) = f(ctx, args...)
@@ -75,8 +76,8 @@ end
 
 iindex(f, ctx::Context, a...) = f(ctx, a...)
 
-function ireduce(f, ctx::Context, ::typeof(reduce), red, xs)
-  unify(ctx, xs, (DomainVar,))
+function ireduce(f, ctx::Context, ::typeof(reduce), red, v0, xs)
+  unify(ctx, xs, (DomainVar(),))
   scalar(ctx)
 end
 
@@ -86,12 +87,14 @@ function interp(ctx::Context, f, args...)
   return Staged()
 end
 
-function infer(v::IVertex)
+function infer_(v::IVertex)
   inputs = [Staged() for i = 1:DataFlow.graphinputs(v)]
   ctx = Context(mux(iline, iconst, iclosure, iargs, ituple, iindex, ireduce, interp);
-                types = Dict())
+                types = Dict(), lambdas = Dict())
   val = interpret(ctx, v, inputs...)
-  Arrow([[lower(ctx, x)...] for x in [inputs..., val]])
+  Arrow([[lower(ctx, x)...] for x in [inputs..., val]]), ctx[:lambdas]
 end
+
+infer(v::IVertex) = infer_(v)[1]
 
 infer(f::Func) = infer(f.graph)
