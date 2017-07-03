@@ -25,3 +25,10 @@ addf = eval(cpu(add))
 mulf = eval(cpu(mul))
 A, B = rand(5,5), rand(5,5)
 @test mulf(zeros(5,5), A, B) ≈ A*B
+
+@tk tracemul(A,B) = sum(diag(mul(A,B)))
+string(infer(tracemul)) == "(m, n) → (n, m) → ()"
+
+A = reshape(1:9, (3,3))
+tracemulf = eval(cpu(tracemul))
+@test tracemulf(A,A) == trace(A^2)
