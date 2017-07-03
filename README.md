@@ -43,8 +43,8 @@ Functions can return scalars as well, for example (using a short form syntax):
 ```julia
 julia> @tk diag(A)[i] = A[i,i]
 julia> @tk trace(A) = sum(diag(A))
-julia> infer(tracemul)
-(m, n) → (n, m) → ()
+julia> infer(trace)
+(m, m) → ()
 
 julia> cpu(trace) |> prettify
 function (anteater,)
