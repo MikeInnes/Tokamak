@@ -2,10 +2,10 @@ using MacroTools, DataFlow
 using DataFlow: prewalk, isconstant, value, inputnode
 
 function desugar(ex)
-  @capture(ex, f_(args__)[is__] = body_) &&
-    (ex = :($f($(args...)) = [$(is...)] -> $body))
   MacroTools.prewalk(ex) do x
-    @capture(x, [is__] -> body_) ? :(($(is...),) -> $body) : x
+    @capture(x, [is__] -> body_) ? :(($(is...),) -> $body) :
+    @capture(x, c_[is__] = body_) ? :($c = ($(is...),) -> $body) :
+      x
   end
 end
 
