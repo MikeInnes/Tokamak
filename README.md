@@ -2,7 +2,12 @@
 
 [![Build Status](https://travis-ci.org/MikeInnes/Tokamak.jl.svg?branch=master)](https://travis-ci.org/MikeInnes/Tokamak.jl)
 
-Tokamak is an optimising compiler for index-style array expressions. It's main reason for existence is that I'm too lazy to write a several-hundred-line CUDA kernel for every op I need (matmul, softmax etc) – with Tokamak I can describe them in one line and compile them to fast CPU and GPU kernels. In future I hope to have many smarter optimisations.
+Tokamak is an optimising compiler for index-style array expressions. It's main reason for existence is that I'm too lazy to write a several-hundred-line CUDA kernel for every op I need (matmul, softmax etc) – with Tokamak I can describe them in one line and compile them to fast CPU and GPU kernels. Possible future directions:
+
+* Smarter tiling and other locality optimisations
+* Emit BLAS-equivalent kernels without special cases
+* Compile larger programs (e.g. entire ML models) to GPUs
+* Optimise distributed cluster computation, e.g. JuliaDB
 
 Take a couple of familiar examples:
 
