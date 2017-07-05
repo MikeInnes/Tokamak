@@ -70,7 +70,7 @@ function unify(ctx::Context, x::Staged, d::Tuple)
   return x
 end
 
-function iclosure(f, ctx::Context, λ::DataFlow.Flosure, vars...)
+function iclosure(f, ctx::Context, λ::DataFlow.Lambda, vars...)
   args = interpret.(ctx, vars)
   idxs = [DomainVar() for i = 1:DataFlow.graphinputs(λ.body) - length(args)]
   interpret(ctx, λ.body, args..., idxs...)

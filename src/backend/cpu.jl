@@ -33,7 +33,7 @@ function interpid(ctx::Context, ::typeof(reduce), red, v0, v)
   end)
 end
 
-function isymbolic(_, ctx::Context, λ::DataFlow.Flosure, vars...)
+function isymbolic(_, ctx::Context, λ::DataFlow.Lambda, vars...)
   args = interpret.(ctx, vars)
   f = (is...) -> interpret(ctx, λ.body, args..., is...)
   dom = map(i -> domainin(i, args), ctx[:lambdas][λ])
