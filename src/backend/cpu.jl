@@ -44,20 +44,20 @@ isymbolic(cb, a...) = cb(a...)
 
 iindex(cb, a...) = cb(a...)
 
-function inline(v::IVertex, args...)
+function inlinecpu(v::IVertex, args...)
   arrow, lambdas = infer_(v)
   ctx = Context(mux(iline, isymbolic, iargs, iconst, ituple, interpid),
                 lambdas = lambdas)
   out = interpret(ctx, v, args...)
 end
 
-inline(f::Func, args...) = inline(f.graph, args...)
+inlinecpu(f::Func, args...) = inlinecpu(f.graph, args...)
 
 domains(a::Arrow) = map(d -> subidx(d, a.ts[1:end]), a.ts[end])
 
 function cpu(f::Func)
   args = [gensym() for _ = 1:DataFlow.graphinputs(f.graph)]
-  x = inline(f, args...)
+  x = inlinecpu(f, args...)
   if x isa SymbolicArray
     is = [gensym(:i) for _ in x.dims]
     :(function (out, $(args...),)
