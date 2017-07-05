@@ -70,10 +70,10 @@ function unify(ctx::Context, x::Staged, d::Tuple)
   return x
 end
 
-function iclosure(f, ctx::Context, λ::DataFlow.Flosure, body, vars...)
-  v, args = DataFlow.flopen(λ, body), interpret.(ctx, vars)
-  idxs = [DomainVar() for i = 1:DataFlow.graphinputs(v) - length(args)]
-  interpret(ctx, v, args..., idxs...)
+function iclosure(f, ctx::Context, λ::DataFlow.Flosure, vars...)
+  args = interpret.(ctx, vars)
+  idxs = [DomainVar() for i = 1:DataFlow.graphinputs(λ.body) - length(args)]
+  interpret(ctx, λ.body, args..., idxs...)
   ctx[:lambdas][λ] = map(i -> subidx(i, lower.(ctx, args)), lower.(ctx, idxs))
   return unify(ctx, Staged(), (idxs...))
 end

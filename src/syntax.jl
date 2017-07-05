@@ -17,6 +17,6 @@ end
 
 macro tk(ex)
   @capture(shortdef(desugar(ex)), f_(args__) = body_)
-  ex = DataFlow.constructor(map(esc, graphm(args, body)))
+  ex = esc(DataFlow.constructor(graphm(args, body)))
   :($(esc(f)) = Func($ex); nothing)
 end

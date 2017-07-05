@@ -33,9 +33,9 @@ function interpid(ctx::Context, ::typeof(reduce), red, v0, v)
   end)
 end
 
-function isymbolic(_, ctx::Context, λ::DataFlow.Flosure, body, vars...)
+function isymbolic(_, ctx::Context, λ::DataFlow.Flosure, vars...)
   args = interpret.(ctx, vars)
-  f = (is...) -> interpret(ctx, DataFlow.flopen(λ, body), args..., DataFlow.constant.(is)...)
+  f = (is...) -> interpret(ctx, λ.body, args..., is...)
   dom = map(i -> domainin(i, args), ctx[:lambdas][λ])
   return SymbolicArray(f, dom)
 end
