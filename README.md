@@ -101,4 +101,4 @@ The syntax is very consistent and composable. We could equally have written `tra
 end
 ```
 
-See the [tests](/test/tokamak.jl) for more detailed examples.
+See the [tests](/test/runtests.jl) for more detailed examples.
