@@ -22,4 +22,12 @@ function inlinea(v::IVertex)
   end
 end
 
-inline(v::IVertex) = v |> fuse |> inlinea
+function fish(v::IVertex)
+  prewalk(v) do v
+    isa(v.value, DataFlow.Lambda) || return v
+    v.value = DataFlow.Lambda(v.value.args, fish(v.value.body))
+    DataFlow.fish(v)
+  end
+end
+
+inline(v::IVertex) = v |> fuse |> inlinea |> fish
