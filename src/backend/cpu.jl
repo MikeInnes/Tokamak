@@ -42,8 +42,6 @@ end
 
 isymbolic(cb, a...) = cb(a...)
 
-iindex(cb, a...) = cb(a...)
-
 function inlinecpu(v::IVertex, args...)
   arrow, lambdas = infer_(v)
   ctx = Context(mux(iline, isymbolic, iargs, iconst, ituple, interpid),
