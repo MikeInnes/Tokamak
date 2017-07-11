@@ -1,5 +1,6 @@
+import DataFlow: syntax
+
 domainm(x, i) = :(1:size($x, $i))
-indexm(x, i...) = :($x[$(i...)])
 
 domainin(idx, vars) = domainm(vars[idx[1]], idx[2])
 
@@ -8,64 +9,54 @@ ndloop(iters, body) =
        Expr(:block, [:($i = $xs) for (i, xs) in iters]...),
        body)
 
-syntax(v::IVertex) = DataFlow.syntax(v)
-syntax(x) = x
+splice(v::IVertex, args...) = DataFlow.detuple(DataFlow.spliceinputs(v, DataFlow.constant.(args)...))
 
-struct SymbolicArray
-  func
-  dims
+function index(v::IVertex, i)
+  if v.value isa DataFlow.Lambda
+    splice(v.value.body, v.inputs..., DataFlow.constant(i))
+  else
+    vertex(getindex, v, DataFlow.constant(i))
+  end
 end
 
-Base.getindex(x::SymbolicArray, is...) = x.func(is...)
-domainm(x::SymbolicArray, i) = x.dims[i]
-indexm(x::SymbolicArray, i...) = x[i...]
-
-interpid(ctx::Context, f, args...) = vertex(f, DataFlow.constant.(args)...)
-interpid(ctx::Context, f::Func, args...) = interpret(ctx, f.graph, args...)
-interpid(ctx::Context, ::typeof(getindex), xs, is...) = indexm(xs, is...)
-
-function interpid(ctx::Context, ::typeof(reduce), red, v0, v)
-  i = gensym(:i)
-  :(let
-    sum = $v0
-    $(ndloop([(i,domainm(v, 1))], :(sum += $(syntax(indexm(v, i))))))
-    sum
-  end)
+function reduction(v::IVertex, types)
+  dom = v[3].value isa DataFlow.Lambda ?
+    domainin(types[v[3].value][1], syntax.([v[3].inputs...])) :
+    :(1:length($(syntax(v[3]))))
+  @gensym i val
+  quote
+    $val = $(syntax(v[2]))
+    for $i in $(dom)
+      $val = $(syntax(v[1]))($val, $(syntax(cpu(index(v[3], i), types))))
+    end
+    $val
+  end |> DataFlow.constant
 end
 
-function isymbolic(_, ctx::Context, λ::DataFlow.Lambda, vars...)
-  args = interpret.(ctx, vars)
-  f = (is...) -> interpret(ctx, λ.body, args..., is...)
-  dom = map(i -> domainin(i, args), ctx[:lambdas][λ])
-  return SymbolicArray(f, dom)
+function cpu(v::IVertex, types)
+  prewalk(v) do v
+    v.value == reduce ? reduction(v, types) : v
+  end
 end
-
-isymbolic(cb, a...) = cb(a...)
-
-function inlinecpu(v::IVertex, args...)
-  arrow, lambdas = infer_(v)
-  ctx = Context(mux(iline, isymbolic, iargs, iconst, ituple, interpid),
-                lambdas = lambdas)
-  out = interpret(ctx, v, args...)
-end
-
-inlinecpu(f::Func, args...) = inlinecpu(f.graph, args...)
-
-domains(a::Arrow) = map(d -> subidx(d, a.ts[1:end]), a.ts[end])
 
 function cpu(f::Func)
-  args = [gensym() for _ = 1:DataFlow.graphinputs(f.graph)]
-  x = inlinecpu(f, args...)
-  if x isa SymbolicArray
-    is = [gensym(:i) for _ in x.dims]
-    :(function (out, $(args...),)
-        $(ndloop(zip(is, x.dims),
-            :(out[$(is...)] = $(syntax(x[is...])))))
+  v = inline(f.graph)
+  arr, λs = infer_(v)
+  n = length(arr.ts[end])
+  args = [gensym() for _ = 1:length(arr.ts)-1]
+  v = splice(v, args...)
+  if n > 0
+    @assert v.value isa DataFlow.Lambda
+    is = [gensym(:i) for _ = 1:n]
+    ds = map(i -> domainin(i, vcat(syntax.(v.inputs), args)), λs[v.value])
+    body = splice(v.value.body, v.inputs..., is...)
+    :(function (out, $(args...))
+        $(ndloop(zip(is, ds), :(out[$(is...)] = $(syntax(cpu(body, λs))))))
         return out
       end)
   else
     :(function ($(args...),)
-        $x
+        $(syntax(cpu(v, λs)))
       end)
   end
 end
