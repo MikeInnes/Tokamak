@@ -6,7 +6,7 @@ function desugar(ex)
     @capture(x, [is__] -> body_) ? :(($(is...),) -> $body) :
     @capture(x, c_[is__] = body_) ? :($c = ($(is...),) -> $body) :
       x
-  end
+  end |> MacroTools.striplines
 end
 
 graphm(args, body) = DataFlow.graphm(MacroTools.flatten(body), args = args)
