@@ -27,7 +27,7 @@ function fish(v::IVertex)
     isa(v.value, DataFlow.Lambda) || return v
     v.value = DataFlow.Lambda(v.value.args, fish(v.value.body))
     DataFlow.fish(v)
-  end
+  end |> DataFlow.cse
 end
 
 inline(v::IVertex) = v |> fuse |> inlinea |> fish
