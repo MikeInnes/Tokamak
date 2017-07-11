@@ -1,6 +1,8 @@
 using Tokamak: @tk, infer, cpu
 using Base.Test
 
+@testset "Tokamak" begin
+
 @tk diag(A)[i] = A[i,i]
 @tk trans(A)[i,j] = A[j,i]
 @tk add(A,B)[i] = A[i] + B[i]
@@ -41,3 +43,5 @@ end
 
 tracemul2f = eval(cpu(tracemul2))
 @test tracemul2f(A,A) == trace(A^2)
+
+end
