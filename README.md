@@ -16,6 +16,8 @@ Take a couple of familiar examples:
   C[i] = A[i] + B[i]
 end
 
+@tk sum(xs) = reduce(+, 0, xs)
+
 @tk function matmul(A, B)
   C[i, j] = sum([k] -> A[i,k]*B[k,j])
 end
@@ -91,14 +93,34 @@ end
 
 Crucially, we only calculate the elements of the matrix multiply that we actually need. Despite the relative naivety of the generated code, this is enough to get a solid 10x speedup over the equivalent BLAS.
 
-The syntax is very consistent and composable. We could equally have written `tracemul` as:
+## GPU Example
+
+Tokamak supports (extremely early stage, totally untested) GPU compilation. Consider defining enough to do a single layer of an mlp: `tanh(x*W + b)`.
 
 ```julia
-@tk function tracemul(A, B)
-  C[i, j] = sum([k] -> A[i,k]*B[k,j])
-  diag[i] = C[i,i]
-  trace = sum(diag)
+@tk add(a, b)[i, j] = a[i, j] + b[i, j]
+@tk mul(A,B)[i,j] = sum([k] -> A[i,k]*B[k,j])
+@tk act(a)[i, j] = tanh(a[i, j])
+
+@tk net(W, b, x) = act(add(mul(x, W), b))
+
+infer(net) # (m, n) → (o, n) → (o, m) → (o, n)
+
+gpu(net) |> prettify
+function (out, waterbuffalo, sealion, otter)
+  (gnat, oyster) = ((blockIdx().x - 1) * blockDim().x + threadIdx().x,
+                    (blockIdx().y - 1) * blockDim().y + threadIdx().y)
+  out[gnat, oyster] = tanh(begin
+    snail = 0
+    for pig = 1:size(otter, 2)
+      snail = snail + otter[gnat, pig] * waterbuffalo[pig, oyster]
+    end
+    snail
+  end + sealion[gnat, oyster])
+  return out
 end
 ```
+
+So here we have a fused kernel which does the entire operation in one pass.
 
 See the [tests](/test/runtests.jl) for more detailed examples.
