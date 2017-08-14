@@ -23,4 +23,6 @@ Base.promote_rule(::Type{Shape{T1,N1}}, ::Type{Shape{T2,N2}}) where {T1,N1,T2,N2
 
 Base.convert(S::Union{Type{Shape{T,N}},Type{Shape{T}}}, sh::Shape{_,N}) where {T,N,_} = S(sh.dims)
 
+Base.similar(s::Shape{T}, dims::Integer...) where T = Shape{T}(dims...)
+
 infer(f, xs...) = nothing

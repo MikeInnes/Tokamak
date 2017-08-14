@@ -1,4 +1,2 @@
-function infer(::typeof(*), a::MatShape, b::MatShape)
-  x, y = promote(a, b)
-  typeof(x)(size(x, 1), size(y, 2))
-end
+infer(::typeof(*), x::MatShape, y::MatShape) =
+  similar(promote(x, y)[1], size(x, 1), size(y, 2))
