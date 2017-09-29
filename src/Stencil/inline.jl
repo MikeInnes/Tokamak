@@ -1,33 +1,43 @@
+# Inline all stencil function calls
 function inlinef(v::IVertex)
   prewalk(v) do v
     isa(v.value, Func) ? DataFlow.spliceinputs(inlinef(v.value.graph), v.inputs...) :
+    isa(v.value, Lambda) ? vertex(Lambda(v.value.args, inlinef(v.value.body)), v.inputs...) :
       v
-  end
-end
-
-function fuse(v::IVertex)
-  prewalk(inlinef(v)) do v
-    isa(v.value, DataFlow.Lambda) || return v
-    v = DataFlow.fuse(v)
-    v.value = DataFlow.Lambda(v.value.args, fuse(v.value.body))
-    return v
   end |> DataFlow.detuple
 end
 
-function inlinea(v::IVertex)
+function λopen(v::IVertex)
   prewalk(v) do v
-    isa(v.value, DataFlow.Lambda) && return vertex(DataFlow.Lambda(v.value.args, inlinea(v.value.body)), v.inputs...)
-    v.value == getindex && v[1].value isa DataFlow.Lambda || return v
-    DataFlow.spliceinputs(v[1].value.body, v[1].inputs..., v.inputs[2:end]...) |> DataFlow.detuple
+    isa(value(v), Lambda) ? DataFlow.λopen(v) : v
+  end |> DataFlow.detuple
+end
+
+function λclose(v::IVertex)
+  postwalk(v) do v
+    isa(value(v), OLambda) ? DataFlow.λclose(v) : v
+  end |> DataFlow.detuple
+end
+
+function dependents(v::IVertex)
+  deps = ObjectIdDict()
+  deps[v] = []
+  DataFlow.prefor(v) do v
+    foreach(w -> push!(get!(deps, w, []), v), v.inputs)
   end
+  return deps
 end
 
-function fish(v::IVertex)
-  prewalk(v) do v
-    isa(v.value, DataFlow.Lambda) || return v
-    v.value = DataFlow.Lambda(v.value.args, fish(v.value.body))
-    DataFlow.fish(v)
-  end |> DataFlow.cse
+# Inline all indexed arrays (if the array is only used once).
+function inlinea(v::IVertex)
+  v = λopen(v)
+  deps = dependents(v)
+  v = prewalk(v) do v
+    (value(v) == getindex && value(v[1]) isa OLambda && length(deps[v[1]]) == 1) || return v
+    λ = λclose(v[1])
+    DataFlow.spliceinputs(λ.value.body, λ.inputs..., v.inputs[2:end]...) |> DataFlow.detuple
+  end
+  λclose(v)
 end
 
-inline(v::IVertex) = v |> fuse |> inlinea |> fish
+inline(v::IVertex) = inlinea(inlinef(v))
