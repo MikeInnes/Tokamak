@@ -1,6 +1,6 @@
 using Tokamak.Stencil: @tk, infer, cpu
 
-@testset "Particles" begin
+@testset "Stencil" begin
 
 @tk diag(A)[i] = A[i,i]
 @tk trans(A)[i,j] = A[j,i]
