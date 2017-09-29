@@ -1,5 +1,8 @@
 module Stencil
 
+using MacroTools, DataFlow
+using DataFlow: Lambda, prewalk, postwalk, isconstant, value, inputnode
+
 include("syntax.jl")
 include("inference.jl")
 include("schedule.jl")

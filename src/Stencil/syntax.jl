@@ -1,6 +1,3 @@
-using MacroTools, DataFlow
-using DataFlow: prewalk, isconstant, value, inputnode
-
 function desugar(ex)
   MacroTools.prewalk(ex) do x
     @capture(x, [is__] -> body_) ? :(($(is...),) -> $body) :
