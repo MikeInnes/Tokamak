@@ -5,19 +5,19 @@ function inlinef(v::IVertex)
       DataFlow.spliceinputs(inlinef(v[1].value.value.graph), v.inputs[2:end]...) :
     isa(v.value, Lambda) ? vertex(Lambda(v.value.args, inlinef(v.value.body)), v.inputs...) :
       v
-  end |> DataFlow.detuple
+  end
 end
 
 function λopen(v::IVertex)
   prewalk(v) do v
     isa(value(v), Lambda) ? DataFlow.λopen(v) : v
-  end |> DataFlow.detuple
+  end
 end
 
 function λclose(v::IVertex)
   postwalk(v) do v
     isa(value(v), OLambda) ? DataFlow.λclose(v) : v
-  end |> DataFlow.detuple
+  end
 end
 
 function dependents(v::IVertex)
@@ -36,7 +36,7 @@ function inlinea(v::IVertex)
   v = prewalk(v) do v
     (value(v) == Call() && value(v[1]) == Constant(getindex) && value(v[2]) isa OLambda && length(deps[v[2]]) == 1) || return v
     λ = λclose(v[2])
-    DataFlow.spliceinputs(λ.value.body, λ.inputs..., v.inputs[3:end]...) |> DataFlow.detuple
+    DataFlow.spliceinputs(λ.value.body, λ.inputs..., v.inputs[3:end]...)
   end
   λclose(v)
 end

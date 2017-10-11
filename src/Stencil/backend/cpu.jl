@@ -9,7 +9,7 @@ ndloop(iters, body) =
        Expr(:block, [:($i = $xs) for (i, xs) in iters]...),
        body)
 
-splice(v::IVertex, args...) = DataFlow.detuple(DataFlow.spliceinputs(v, DataFlow.constant.(args)...))
+splice(v::IVertex, args...) = DataFlow.spliceinputs(v, DataFlow.constant.(args)...)
 
 function index(v::IVertex, i)
   if v.value isa DataFlow.Lambda
