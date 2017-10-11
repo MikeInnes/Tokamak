@@ -1,7 +1,8 @@
 # Inline all stencil function calls
 function inlinef(v::IVertex)
   prewalk(v) do v
-    isa(v.value, Func) ? DataFlow.spliceinputs(inlinef(v.value.graph), v.inputs...) :
+    isa(v.value, Call) && isconstant(v[1]) && isa(v[1].value.value, Func) ?
+      DataFlow.spliceinputs(inlinef(v[1].value.value.graph), v.inputs[2:end]...) :
     isa(v.value, Lambda) ? vertex(Lambda(v.value.args, inlinef(v.value.body)), v.inputs...) :
       v
   end |> DataFlow.detuple
@@ -33,9 +34,9 @@ function inlinea(v::IVertex)
   v = λopen(v)
   deps = dependents(v)
   v = prewalk(v) do v
-    (value(v) == getindex && value(v[1]) isa OLambda && length(deps[v[1]]) == 1) || return v
-    λ = λclose(v[1])
-    DataFlow.spliceinputs(λ.value.body, λ.inputs..., v.inputs[2:end]...) |> DataFlow.detuple
+    (value(v) == Call() && value(v[1]) == Constant(getindex) && value(v[2]) isa OLambda && length(deps[v[2]]) == 1) || return v
+    λ = λclose(v[2])
+    DataFlow.spliceinputs(λ.value.body, λ.inputs..., v.inputs[3:end]...) |> DataFlow.detuple
   end
   λclose(v)
 end

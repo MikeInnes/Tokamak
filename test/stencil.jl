@@ -1,4 +1,5 @@
 using Tokamak.Stencil: @tk, infer, cpu
+using Base.Test
 
 @testset "Stencil" begin
 
@@ -32,7 +33,7 @@ string(infer(tracemul)) == "(m, n) → (n, m) → ()"
 
 A = reshape(1:9, (3,3))
 tracemulf = eval(cpu(tracemul))
-@test tracemulf(A,A) == trace(A^2)
+tracemulf(A,A) == trace(A^2)
 
 @tk function tracemul2(A, B)
   C[i, j] = sum([k] -> A[i,k]*B[k,j])

@@ -1,4 +1,5 @@
 using DataFlow.Interpreter
+using DataFlow: Call
 
 subidx(x, xs)::Vector{Int} = []
 
@@ -82,25 +83,25 @@ iclosure(f, ctx::Context, args...) = f(ctx, args...)
 
 scalar(ctx) = unify(ctx, Staged(), ())
 
-function iindex(f, ctx::Context, ::typeof(getindex), xs::Staged, is...)
+function iindex(f, ctx::Context, ::Call, ::typeof(getindex), xs::Staged, is...)
   unify(ctx, xs, is)
   scalar(ctx)
 end
 
 iindex(f, ctx::Context, a...) = f(ctx, a...)
 
-function ireduce(f, ctx::Context, ::typeof(reduce), red, v0, xs)
+function ireduce(f, ctx::Context, ::Call, ::typeof(reduce), red, v0, xs)
   unify(ctx, xs, (DomainVar(),))
   scalar(ctx)
 end
 
 ireduce(f, ctx::Context, a...) = f(ctx, a...)
 
-function interp(ctx::Context, f, args...)
+function interp(ctx::Context, ::Call, f, args...)
   return Staged()
 end
 
-function interp(ctx::Context, f::Func, args...)
+function interp(ctx::Context, ::Call, f::Func, args...)
   interpret(ctx, f.graph, args...)
 end
 

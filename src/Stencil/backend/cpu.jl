@@ -1,4 +1,4 @@
-import DataFlow: syntax
+import DataFlow: syntax, Constant
 
 domainm(x, i) = :(1:size($x, $i))
 
@@ -15,19 +15,19 @@ function index(v::IVertex, i)
   if v.value isa DataFlow.Lambda
     splice(v.value.body, v.inputs..., DataFlow.constant(i))
   else
-    vertex(getindex, v, DataFlow.constant(i))
+    vertex(Call(), DataFlow.constant(getindex), v, DataFlow.constant(i))
   end
 end
 
 function reduction(v::IVertex, types)
-  dom = v[3].value isa DataFlow.Lambda ?
-    domainin(types[v[3].value][1], syntax.([v[3].inputs...])) :
-    :(1:length($(syntax(v[3]))))
+  dom = v[4].value isa DataFlow.Lambda ?
+    domainin(types[v[4].value][1], syntax.([v[4].inputs...])) :
+    :(1:length($(syntax(v[4]))))
   @gensym i val
   quote
-    $val = $(syntax(v[2]))
+    $val = $(syntax(v[3]))
     for $i in $(dom)
-      $val = $(syntax(v[1]))($val, $(syntax(cpu(index(v[3], i), types))))
+      $val = $(syntax(v[2]))($val, $(syntax(cpu(index(v[4], i), types))))
     end
     $val
   end |> DataFlow.constant
@@ -35,7 +35,7 @@ end
 
 function cpu(v::IVertex, types)
   prewalk(v) do v
-    v.value == reduce ? reduction(v, types) : v
+    v.value isa Call && v[1].value == Constant(reduce) ? reduction(v, types) : v
   end
 end
 
