@@ -1,1 +1,0 @@
-function store end
