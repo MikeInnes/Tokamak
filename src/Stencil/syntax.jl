@@ -1,7 +1,7 @@
 function desugar(ex)
   MacroTools.prewalk(ex) do x
-    @capture(x, [is__] -> body_) ? :(($(is...),) -> $body) :
-    @capture(x, c_[is__] = body_) ? :($c = ($(is...),) -> $body) :
+    @capture(x, [is__] -> body_) ? Expr(:vertex, Loop(), :(($(is...),) -> $body)) :
+    @capture(x, c_[is__] = body_) ? :($c = $(Expr(:vertex, Loop(), :(($(is...),) -> $body)))) :
       x
   end |> MacroTools.striplines
 end

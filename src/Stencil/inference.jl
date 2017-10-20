@@ -81,6 +81,9 @@ end
 
 iclosure(f, ctx::Context, args...) = f(ctx, args...)
 
+iloop(f, ctx::Context, l::Loop, λ, args...) = f(ctx, λ.value, λ.inputs...)
+iloop(f, ctx::Context, args...) = f(ctx, args...)
+
 scalar(ctx) = unify(ctx, Staged(), ())
 
 function iindex(f, ctx::Context, ::Call, ::typeof(getindex), xs::Staged, is...)
@@ -107,7 +110,7 @@ end
 
 function infer_(v::IVertex)
   inputs = [Staged() for i = 1:DataFlow.graphinputs(v)]
-  ctx = Context(mux(iline, iconst, iclosure, iargs, ituple, iindex, ireduce, interp);
+  ctx = Context(mux(iline, iconst, iloop, iclosure, iargs, ituple, iindex, ireduce, interp);
                 types = Dict(), lambdas = Dict())
   val = interpret(ctx, v, inputs...)
   Arrow([[lower(ctx, x)...] for x in [inputs..., val]]), ctx[:lambdas]
