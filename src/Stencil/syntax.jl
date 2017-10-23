@@ -1,7 +1,17 @@
+using MacroTools: @q
+
+function lower_stencil(is, body)
+  @gensym out
+  @q begin
+    $out = Array()
+    $(Expr(:vertex, Loop(), :(($(is...),) -> $out[$(is...)] = $body)))
+  end
+end
+
 function desugar(ex)
-  MacroTools.prewalk(ex) do x
-    @capture(x, [is__] -> body_) ? Expr(:vertex, Loop(), :(($(is...),) -> $body)) :
-    @capture(x, c_[is__] = body_) ? :($c = $(Expr(:vertex, Loop(), :(($(is...),) -> $body)))) :
+  MacroTools.postwalk(ex) do x
+    @capture(x, [is__] -> body_) ? lower_stencil(is, body) :
+    @capture(x, c_[is__] = body_) ? :($c = $(lower_stencil(is, body))) :
       x
   end |> MacroTools.striplines
 end
