@@ -4,7 +4,7 @@ function lower_stencil(is, body)
   @gensym out
   @q begin
     $out = Array()
-    $(Expr(:vertex, Loop(), :(($(is...),) -> $out[$(is...)] = $body)))
+    $(Expr(:vertex, Loop(), :(($(is...),) -> $out[$(is...)] = $body), out))
   end
 end
 
