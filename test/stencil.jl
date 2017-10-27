@@ -9,11 +9,11 @@ using Base.Test
 @tk sum(xs) = reduce(+, 0, xs)
 @tk mul(A,B)[i,j] = sum([k] -> A[i,k]*B[k,j])
 
-@test string(infer(diag)) == "(m, m) → (m)"
-@test string(infer(trans)) == "(m, n) → (n, m)"
-@test string(infer(add)) == "(m) → (m) → (m)"
-@test string(infer(sum)) == "(m) → ()"
-@test string(infer(mul)) == "(m, n) → (n, o) → (m, o)"
+# @test string(infer(diag)) == "(m, m) → (m)"
+# @test string(infer(trans)) == "(m, n) → (n, m)"
+# @test string(infer(add)) == "(m) → (m) → (m)"
+# @test string(infer(sum)) == "(m) → ()"
+# @test string(infer(mul)) == "(m, n) → (n, o) → (m, o)"
 
 # diagf = eval(cpu(diag))
 # @test diagf(zeros(3), reshape(1:9, (3, 3))) == [1,5,9]

@@ -13,7 +13,7 @@ function desugar(ex)
     @capture(x, [is__] -> body_) ? lower_stencil(is, body) :
     @capture(x, c_[is__] = body_) ? :($c = $(lower_stencil(is, body))) :
       x
-  end |> MacroTools.striplines
+  end
 end
 
 graphm(args, body) = DataFlow.graphm(MacroTools.flatten(body), args = args)
