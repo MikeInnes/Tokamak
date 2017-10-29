@@ -3,7 +3,7 @@ using MacroTools: @q
 function lower_stencil(is, body)
   @gensym out
   @q begin
-    $out = Array()
+    $out = $(Array{Any,length(is)})()
     $(Expr(:vertex, Loop(), :(($(is...),) -> $out[$(is...)] = $body), out))
   end
 end
