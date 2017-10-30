@@ -14,3 +14,18 @@ function DataFlow.toexpr(f::Loop, λ, out, is...)
     $out
   end
 end
+
+# Inline all temporary arrays
+function rmtemps(v::IVertex)
+  v = λopen(v)
+  deps = dependents(v)
+  v = prewalk(v) do v
+    (value(v) == Call() && value(v[1]) == DataFlow.Constant(getindex) &&
+      value(v[2]) isa Loop && length(deps[v[2]]) == 1) || return v
+    body = λclose(v[2,1])
+    body = DataFlow.spliceinputs(body.value.body, body.inputs..., v.inputs[3:end]...)
+    @assert iscall(body, setindex!)
+    return body[3]
+  end
+  λclose(v)
+end
