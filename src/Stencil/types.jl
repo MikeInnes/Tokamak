@@ -74,7 +74,9 @@ function iloop(f, ctx::Context, ::Loop, l, args...)
   vars = vtype.(l.inputs)
   inputs = [withtype(inputnode(i), sh) for (i, sh) in enumerate([vars..., is...])]
   body = interpret(ctx, l.value.body, inputs...)
-  vertex(Loop(), vertex(Lambda(l.value.args, body), l.inputs...), args..., constant.(is)...)
+  withtype(
+    vertex(Loop(), vertex(Lambda(l.value.args, body), l.inputs...), args..., constant.(is)...),
+    ArrayT(is))
 end
 
 iloop(f, ctx::Context, v, args...) = f(ctx, v, args...)
@@ -91,11 +93,18 @@ end
 
 iindex(f, ctx::Context, v, args...) = f(ctx, v, args...)
 
+function iinline(f, ctx::Context, ::Call, v, args...)
+  isconstant(v) && v.value.value isa Func || return f(ctx, Call(), v, args...)
+  interpret(ctx, v.value.value.graph, args...)
+end
+
+iinline(f, ctx::Context, v, args...) = f(ctx, v, args...)
+
 interp(ctx::Context, f, args...) = vertex(f, constant.(args)...)
 
 function infer(v::IVertex, ts::Shape...)
   inputs = [vertex(TypeAssert(), inputnode(i), constant(ts[i])) for i = 1:length(ts)]
-  ctx = Context(mux(iconst, iargs, iarray, iloop, iindex, interp),
+  ctx = Context(mux(iinline, iconst, iargs, iarray, iloop, iindex, interp),
                 typemap = Dict())
   interpret(ctx, v, inputs...)
 end
