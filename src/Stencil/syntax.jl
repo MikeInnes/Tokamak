@@ -35,3 +35,17 @@ macro tk(ex)
   ex = esc(DataFlow.constructor(graphm(args, body)))
   :($(esc(f)) = Func($(Expr(:quote, f)), $ex); nothing)
 end
+
+# Output cleanup
+
+function rm_aliases(ex)
+  aliases = Dict()
+  ex = MacroTools.postwalk(ex) do ex
+    @capture(ex, x_ = (body__; y_Symbol)) || return ex
+    aliases[x] = y
+    :($(body...);)
+  end
+  MacroTools.postwalk(x -> get(aliases, x, x), ex)
+end
+
+code(v::IVertex) = v |> DataFlow.syntax |> rm_aliases |> MacroTools.prettify
