@@ -1,15 +1,20 @@
 using MacroTools: @q
 
+function lower_loop(is, out, box, body)
+  @q begin
+    $out = $box
+    $(Expr(:vertex, Loop(), :(($(is...),) -> $body), out))
+  end
+end
+
 function lower_stencil(is, body)
   @gensym out
-  @q begin
-    $out = $(Array{Any,length(is)})()
-    $(Expr(:vertex, Loop(), :(($(is...),) -> $out[$(is...)] = $body), out))
-  end
+  lower_loop(is, out, :(Array{Any,$(length(is))}()), :($out[$(is...)] = $body))
 end
 
 function desugar(ex)
   MacroTools.postwalk(ex) do x
+    @capture(x, [is__] -> (out_ = box_) => body_) ? lower_loop(is, out, box, body) :
     @capture(x, [is__] -> body_) ? lower_stencil(is, body) :
     @capture(x, c_[is__] = body_) ? :($c = $(lower_stencil(is, body))) :
       x

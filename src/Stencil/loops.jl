@@ -29,3 +29,12 @@ function rmtemps(v::IVertex)
   end
   λclose(v)
 end
+
+function accum!(op, var, val)
+  var[] = op(var[], val)
+  return
+end
+
+@tk function reduce(f, v0, xs)
+  [i] -> (out = Ref{Any}()) => accum!(f, out, xs[i])
+end

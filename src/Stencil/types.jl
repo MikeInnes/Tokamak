@@ -61,6 +61,7 @@ function unify(ctx::Context, a::Domain, b::Domain)
 end
 
 withtype(v, T) = vertex(TypeAssert(), v, constant(T))
+withtype(v, ::Void) = v
 vtype(v::IVertex) = v.value isa TypeAssert ? v[2].value.value : nothing
 
 function iarray(f, ctx::Context, ::Call, T::Type{<:AbstractArray})
@@ -104,7 +105,7 @@ interp(ctx::Context, f, args...) = vertex(f, constant.(args)...)
 
 function infer(v::IVertex, ts::Shape...)
   inputs = [vertex(TypeAssert(), inputnode(i), constant(ts[i])) for i = 1:length(ts)]
-  ctx = Context(mux(iinline, iconst, iargs, iarray, iloop, iindex, interp),
+  ctx = Context(mux(iline, iinline, iconst, iargs, iarray, iloop, iindex, interp),
                 typemap = Dict())
   interpret(ctx, v, inputs...)
 end
