@@ -19,9 +19,8 @@ end
 function rmtemps(v::IVertex)
   v = λopen(v)
   deps = dependents(v)
-  v = prewalk(v) do v
-    (value(v) == Call() && value(v[1]) == DataFlow.Constant(getindex) &&
-      value(v[2]) isa Loop && length(deps[v[2]]) == 1) || return v
+  v = DataFlow.postwalk!(v) do v
+    (iscall(v, getindex) && value(v[2]) isa Loop && length(deps[v[2]]) == 1) || return v
     body = λclose(v[2,1])
     body = DataFlow.spliceinputs(body.value.body, body.inputs..., v.inputs[3:end]...)
     @assert iscall(body, setindex!)
