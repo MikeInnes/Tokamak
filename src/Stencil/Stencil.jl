@@ -5,8 +5,8 @@ using DataFlow: TypeAssert, Lambda, OLambda, prewalk, postwalk, isconstant, valu
   inputnode, constant, iscall
 
 include("utils.jl")
-include("loops.jl")
 include("syntax.jl")
+include("loops.jl")
 include("types.jl")
 
 end
