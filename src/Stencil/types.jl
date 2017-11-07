@@ -13,10 +13,10 @@ end
 Domain() = Domain(uid[] += 1)
 
 struct ArrayT <: Shape
-  ds::Vector{Any}
+  xs::Vector{Any}
 end
 
-ArrayT(ds::Domain...) = ArrayT([ds...])
+ArrayT(xs::Domain...) = ArrayT([xs...])
 
 struct TupleT <: Shape
   xs::Vector{Any}
@@ -30,8 +30,8 @@ end
 
 Arrow(xs...) = Arrow([xs...])
 
-tostring(d::Domain, ctx) = haskey(ctx[1], d) ? ctx[1][d] : (ctx[1][d] = shift!(ctx[2]))
-tostring(d::ArrayT, ctx) = string("[", join(map(x -> tostring(x, ctx), d.ds), ","), "]")
+tostring(d::Domain, ctx) = "d$(d.id)"
+tostring(d::ArrayT, ctx) = string("[", join(map(x -> tostring(x, ctx), d.xs), ","), "]")
 tostring(d::TupleT, ctx) = string("(", join(map(x -> tostring(x, ctx), d.xs), ","), ")")
 tostring(d::Arrow, ctx) = join(map(x -> tostring(x, ctx), d.xs), " → ")
 tostring(d::AnyT, ctx) = "*"
@@ -47,11 +47,19 @@ shape(T::Type{<:Tuple}) = TupleT([shape(x) for x in T.parameters])
 using DataFlow.Interpreter
 using DataFlow: Call
 
-function lower(typemap, x)
-  while haskey(typemap, x)
-    x = typemap[x]
+function lower(m::Associative, x::Domain)
+  while haskey(m, x)
+    x = m[x]
   end
   return x
+end
+
+lower(m::Associative, x::Shape) = typeof(x)(lower.(m, x.xs)...)
+
+function lower(m::Associative, v::IVertex)
+  prewalk(λopen(v)) do v
+    isconstant(v) && v.value.value isa Shape ? constant(lower(m, v.value.value)) : v
+  end |> λclose
 end
 
 function unify(ctx::Context, a::Domain, b::Domain)
@@ -65,7 +73,9 @@ withtype(v, ::Void) = v
 vtype(v::IVertex) = v.value isa TypeAssert ? v[2].value.value : nothing
 
 function iarray(f, ctx::Context, ::Call, T::Type{<:AbstractArray})
-  withtype(vertex(Call(), constant(T)), ArrayT([Domain() for _ = 1:ndims(T)]))
+  ds = [Domain() for _ = 1:ndims(T)]
+  ctor = vertex(Call(), constant(T), constant.(ds)...)
+  withtype(ctor, ArrayT(ds...))
 end
 
 iarray(f, ctx::Context, v, args...) = f(ctx, v, args...)
@@ -83,12 +93,12 @@ end
 iloop(f, ctx::Context, v, args...) = f(ctx, v, args...)
 
 function iindex(f, ctx::Context, ::Call, ::typeof(getindex), xs, is...)
-  foreach(d -> unify(ctx, d...), zip(vtype(xs).ds, vtype.(is)))
+  foreach(d -> unify(ctx, d...), zip(vtype(xs).xs, vtype.(is)))
   vertex(Call(), constant(getindex), xs, is...)
 end
 
 function iindex(f, ctx::Context, ::Call, ::typeof(setindex!), xs, v, is...)
-  foreach(d -> unify(ctx, d...), zip(vtype(xs).ds, vtype.(is)))
+  foreach(d -> unify(ctx, d...), zip(vtype(xs).xs, vtype.(is)))
   vertex(Call(), constant(setindex!), xs, v, is...)
 end
 
@@ -103,11 +113,14 @@ iinline(f, ctx::Context, v, args...) = f(ctx, v, args...)
 
 interp(ctx::Context, f, args...) = vertex(f, constant.(args)...)
 
-function infer(v::IVertex, ts::Shape...)
+function infer_(v::IVertex, ts::Shape...)
   inputs = [vertex(TypeAssert(), inputnode(i), constant(ts[i])) for i = 1:length(ts)]
+  typemap = Dict()
   ctx = Context(mux(iline, iinline, iconst, iargs, iarray, iloop, iindex, interp),
-                typemap = Dict())
-  interpret(ctx, v, inputs...)
+                typemap = typemap)
+  v = interpret(ctx, v, inputs...)
+  v = lower(typemap, v)
+  Arrow(lower.(typemap, ts)..., vtype(v)), v
 end
 
 function striptypes(v::IVertex)
@@ -115,3 +128,10 @@ function striptypes(v::IVertex)
     v.value isa DataFlow.TypeAssert ? v[1] : v
   end |> λclose
 end
+
+function infer(v::IVertex, ts::Shape...)
+  a, v = infer_(v, ts...)
+  a, striptypes(v)
+end
+
+infer(f::Func, ts...) = infer(f.graph, ts...)

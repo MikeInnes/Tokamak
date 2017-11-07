@@ -10,6 +10,8 @@ function λclose(v::IVertex)
   end
 end
 
+withopen(f, v) = v |> λopen |> f |> λclose
+
 function dependents(v::IVertex)
   deps = ObjectIdDict()
   deps[v] = []
