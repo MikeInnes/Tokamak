@@ -123,15 +123,38 @@ function infer_(v::IVertex, ts::Shape...)
   Arrow(lower.(typemap, ts)..., vtype(v)), v
 end
 
+# Post-processing
+
 function striptypes(v::IVertex)
   postwalk(λopen(v)) do v
     v.value isa DataFlow.TypeAssert ? v[1] : v
   end |> λclose
 end
 
+domainv(sh::Domain, d, v) = sh == d ? v : nothing
+
+domainv(sh::ArrayT, d, v) =
+  get(filter(x -> x ≠ nothing,
+             domainv.(sh.xs, d,
+                      vertex.(domain, v, constant.(1:length(sh.xs))))),
+      1, nothing)
+
+domainv(sh::Arrow, d) =
+  filter(x -> x ≠ nothing,
+         domainv.(sh.xs, d, inputnode.(1:length(sh.xs))))[1]
+
+function insert_domains(v::IVertex, t::Shape)
+  postwalk(λopen(v)) do v
+    isconstant(v) && v.value.value isa Domain || return v
+    domainv(t, v.value.value)
+  end |> DataFlow.cse |> λclose
+end
+
 function infer(v::IVertex, ts::Shape...)
   a, v = infer_(v, ts...)
-  a, striptypes(v)
+  a, insert_domains(striptypes(v), a)
 end
+
+lower(x, ts...) = infer(x, ts...)[2]
 
 infer(f::Func, ts...) = infer(f.graph, ts...)

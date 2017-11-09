@@ -1,3 +1,5 @@
+domain(x::AbstractArray, n) = indices(x, n)
+
 function λopen(v::IVertex)
   prewalk(v) do v
     isa(value(v), Lambda) ? DataFlow.λopen(v) : v
