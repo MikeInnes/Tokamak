@@ -38,15 +38,25 @@ end
 
 # Output cleanup
 
+function inline_blocks(ex)
+  MacroTools.postwalk(ex) do ex
+    @capture(ex, x_ = (body__; y_)) || return ex
+    unblock(:($(body...); $x = $y))
+  end
+end
+
 function rm_aliases(ex)
   aliases = Dict()
   ex = MacroTools.postwalk(ex) do ex
-    @capture(ex, x_Symbol = (body__; y_Symbol)) || return ex
-    isexpr(unblock(ex).args[2], :block) || return ex # for loop bindings
+    @capture(ex, (body__; x_Symbol = y_Symbol)) || return ex
+    # Avoid for loop assignments
+    isexpr(ex, :block) && !(all(isexpr.(ex.args, :(=)))) || return ex
     aliases[x] = y
     :($(body...);)
   end
   MacroTools.postwalk(x -> get(aliases, x, x), ex)
 end
 
-code(v::IVertex) = v |> DataFlow.syntax |> rm_aliases |> MacroTools.prettify
+code(v::IVertex) =
+  v |> DataFlow.syntax |> inline_blocks |>
+    rm_aliases |> MacroTools.prettify
