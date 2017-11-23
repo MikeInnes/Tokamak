@@ -41,7 +41,7 @@ end
 function rm_aliases(ex)
   aliases = Dict()
   ex = MacroTools.postwalk(ex) do ex
-    @capture(ex, x_ = (body__; y_Symbol)) || return ex
+    @capture(ex, x_Symbol = (body__; y_Symbol)) || return ex
     isexpr(unblock(ex).args[2], :block) || return ex # for loop bindings
     aliases[x] = y
     :($(body...);)

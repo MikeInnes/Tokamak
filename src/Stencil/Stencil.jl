@@ -9,4 +9,6 @@ include("syntax.jl")
 include("loops.jl")
 include("types.jl")
 
+include("codegen/dagger.jl")
+
 end

@@ -22,3 +22,14 @@ function dependents(v::IVertex)
   end
   return deps
 end
+
+vcall(args...) = vertex(Call(), constant.(args)...)
+
+function tolambda(v::IVertex, args...)
+  λ = OLambda(length(args))
+  is = [vertex(DataFlow.Split(i), constant(DataFlow.LooseEnd(λ.id)))
+        for i = 1:length(args)]
+  vertex(λ, DataFlow.postwalk!(v) do v
+    get(is, findfirst(args, v), v)
+  end) |> DataFlow.λclose
+end
