@@ -12,6 +12,18 @@ function λclose(v::IVertex)
   end
 end
 
+function applybody(f, v::IVertex)
+  @assert v.value isa Lambda
+  vertex(Lambda(v.value.args, f(v.value.body)), v.inputs...)
+end
+
+function prewalkλ(f, v::IVertex)
+  prewalk(v) do v
+    v = f(v)
+    v.value isa Lambda ? applybody(v -> prewalkλ(f, v), v) : v
+  end
+end
+
 withopen(f, v) = v |> λopen |> f |> λclose
 
 function dependents(v::IVertex)

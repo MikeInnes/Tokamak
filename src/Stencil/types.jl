@@ -57,9 +57,9 @@ end
 lower(m::Associative, x::Shape) = typeof(x)(lower.(m, x.xs)...)
 
 function lower(m::Associative, v::IVertex)
-  prewalk(λopen(v)) do v
+  prewalkλ(v) do v
     isconstant(v) && v.value.value isa Shape ? constant(lower(m, v.value.value)) : v
-  end |> λclose
+  end
 end
 
 function unify(ctx::Context, a::Domain, b::Domain)
@@ -113,7 +113,7 @@ iinline(f, ctx::Context, v, args...) = f(ctx, v, args...)
 
 interp(ctx::Context, f, args...) = vertex(f, constant.(args)...)
 
-function infer_(v::IVertex, ts::Shape...)
+function infer(v::IVertex, ts::Shape...)
   inputs = [vertex(TypeAssert(), inputnode(i), constant(ts[i])) for i = 1:length(ts)]
   typemap = Dict()
   ctx = Context(mux(iline, iinline, iconst, iargs, iarray, iloop, iindex, interp),
@@ -123,13 +123,16 @@ function infer_(v::IVertex, ts::Shape...)
   Arrow(lower.(typemap, ts)..., vtype(v)), v
 end
 
+lower(x, ts...) = infer(x, ts...)[2]
+
+infer(f::Func, ts...) = infer(f.graph, ts...)
+
 # Post-processing
 
-function striptypes(v::IVertex)
-  postwalk(λopen(v)) do v
-    v.value isa DataFlow.TypeAssert ? v[1] : v
-  end |> λclose
-end
+istype(v) = v.value isa DataFlow.TypeAssert
+notype(v) = istype(v) ? notype(v[1]) : v
+
+striptypes(v::IVertex) = prewalkλ(notype, v)
 
 domainv(sh::Domain, d, v) = sh == d ? v : nothing
 
@@ -144,17 +147,8 @@ domainv(sh::Arrow, d) =
          domainv.(sh.xs, d, inputnode.(1:length(sh.xs))))[1]
 
 function insert_domains(v::IVertex, t::Shape)
-  postwalk(λopen(v)) do v
+  prewalkλ(v) do v
     isconstant(v) && v.value.value isa Domain || return v
     domainv(t, v.value.value)
-  end |> DataFlow.cse |> λclose
+  end
 end
-
-function infer(v::IVertex, ts::Shape...)
-  a, v = infer_(v, ts...)
-  a, insert_domains(striptypes(v), a)
-end
-
-lower(x, ts...) = infer(x, ts...)[2]
-
-infer(f::Func, ts...) = infer(f.graph, ts...)
