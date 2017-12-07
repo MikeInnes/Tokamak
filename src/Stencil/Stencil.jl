@@ -2,7 +2,7 @@ module Stencil
 
 using MacroTools, DataFlow
 using DataFlow: TypeAssert, Lambda, OLambda, prewalk, postwalk, isconstant, value,
-  inputnode, constant, iscall
+  inputnode, constant, iscall, spliceinputs, syntax
 
 include("utils.jl")
 include("syntax.jl")

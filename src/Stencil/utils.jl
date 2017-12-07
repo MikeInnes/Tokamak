@@ -37,11 +37,19 @@ end
 
 vcall(args...) = vertex(Call(), constant.(args)...)
 
+# After creating a lambda, make sure the types of closed-over variables are
+# propagated inside the new scope.
+function closure_types(v)
+  vars = [withtype(inputnode(i), vtype(v[i])) for i = 1:length(v.inputs)]
+  vertex(Lambda(v.value.args, spliceinputs(v.value.body, vars...)),
+         v.inputs...)
+end
+
 function tolambda(v::IVertex, args...)
   λ = OLambda(length(args))
   is = [vertex(DataFlow.Split(i), constant(DataFlow.LooseEnd(λ.id)))
         for i = 1:length(args)]
   vertex(λ, DataFlow.postwalk!(v) do v
     get(is, findfirst(args, v), v)
-  end) |> DataFlow.λclose
+  end) |> DataFlow.λclose |> closure_types
 end

@@ -123,9 +123,11 @@ function infer(v::IVertex, ts::Shape...)
   Arrow(lower.(typemap, ts)..., vtype(v)), v
 end
 
-lower(x, ts...) = infer(x, ts...)[2]
+infer(v::IVertex, ts::Type...) = infer(v, shape.(ts)...)
 
 infer(f::Func, ts...) = infer(f.graph, ts...)
+
+lower(x, ts...) = infer(x, ts...)[2]
 
 # Post-processing
 
