@@ -6,6 +6,9 @@ using Dagger: DArray, domainchunks, lookup_parts, chunks
 DArray{T,N}(dom::NTuple{N}, cdom, chs) where {T,N} =
   DArray(T, ArrayDomain(dom), ArrayDomain.(cdom), chs)
 
+DArray{T,N}(f, dom::NTuple{N}, cdom) where {T,N} =
+  DArray{T,N}(dom, cdom, f.(cdom))
+
 Dagger.domainchunks(xs::DArray, dim::Integer) =
   map(d -> d.indexes[dim],
       domainchunks(xs)[ntuple(i -> i == dim ? (:) : 1 , ndims(xs))...])
@@ -35,6 +38,12 @@ end
 chslice(xs::DArray, i...) = chslice(xs, ArrayDomain(i))
 
 # Backend
+
+struct Chunks <: Shape
+  d
+end
+tostring(d::Chunks, ctx) = string(tostring(d.d, ctx), "*")
+domainv(sh::Domain, d::Chunks, v) = sh == d.d ? vcall(domainchunks, v.inputs...) : nothing
 
 function arrays(v)
   s = Set()
@@ -66,15 +75,15 @@ argtuple(v) =
 
 function compile_loop(v)
   lambda = v[1]
-  is = v[3:end]
-  ics = [inputnode(i+length(v[1].inputs)) for i = 1:length(is)]
+  is = map(x -> x.value.value, v[3:end])
+  inputd(i) = inputnode(length(v[1,:])+findfirst(is, i))
   lambda = applybody(lambda) do body
     vars = delete!(arrays(body), body[2])
-    vcall(Thunk, tolambda(body, vars...),
-          [vcall(chslice, var, ics...) for var in vars]...)
+    vcall(Thunk, tolambda(vcall(parent, body), vars...),
+          [vcall(chslice, var, inputd.(vtype(var).xs)...) for var in vars]...)
   end |> argtuple
-  cdom = vcall(domprod, is...)
-  striptypes(vcall(DArray{Any,length(is)}, lambda, cdom))
+  cdom = vcall(domprod, Chunks.(is)...)
+  striptypes(vcall(DArray{Any,length(is)}, lambda, vcall(tuple, is...), cdom))
 end
 
 function compile_dagger(f::Func, ts...)
@@ -83,8 +92,9 @@ function compile_dagger(f::Func, ts...)
   v = tolambda(v, [inputnode(n) for n = 1:length(ts)]...)
 end
 
-# compile_dagger(add1, Vector{Float64}) |> code
-# f = compile_dagger(add1, Vector{Float64}) |> syntax |> eval
-
-# xs = distribute(rand(100), Blocks(10))
-# collect.(f(xs))
+# @tk outer(xs, ys)[i,j] = xs[i] * ys[j]
+# f = compile_dagger(outer, Vector{Float64}, Vector{Float64}) |> syntax |> eval
+#
+# xs = distribute(1:100, Blocks(10))
+# ys = distribute(1:100, Blocks(10))
+# collect(f(xs, ys))

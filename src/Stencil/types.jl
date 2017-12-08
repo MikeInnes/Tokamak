@@ -150,7 +150,7 @@ domainv(sh::Arrow, d) =
 
 function insert_domains(v::IVertex, t::Shape)
   prewalkλ(v) do v
-    isconstant(v) && v.value.value isa Domain || return v
+    isconstant(v) && v.value.value isa Shape || return v
     domainv(t, v.value.value)
   end
 end
