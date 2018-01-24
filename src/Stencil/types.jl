@@ -87,7 +87,7 @@ function iloop(f, ctx::Context, ::Loop, l, args...)
   body = interpret(ctx, l.value.body, inputs...)
   withtype(
     vertex(Loop(), vertex(Lambda(l.value.args, body), l.inputs...), args..., constant.(is)...),
-    ArrayT(is))
+    vtype(args[1]))
 end
 
 iloop(f, ctx::Context, v, args...) = f(ctx, v, args...)
