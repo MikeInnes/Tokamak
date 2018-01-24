@@ -35,5 +35,5 @@ function accum!(op, var, val)
 end
 
 @tk function reduce(f, v0, xs)
-  [i] -> (out = Ref{Any}()) => accum!(f, out, xs[i])
+  [i] -> (out = Ref{Any}(v0)) => accum!(f, out, xs[i])
 end
