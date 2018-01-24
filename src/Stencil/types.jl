@@ -78,6 +78,11 @@ function iarray(f, ctx::Context, ::Call, T::Type{<:AbstractArray})
   withtype(ctor, ArrayT(ds...))
 end
 
+function iarray(f, ctx::Context, ::Call, T::Type{<:Ref}, x)
+  ctor = vertex(Call(), constant(T), constant(x))
+  withtype(ctor, ArrayT())
+end
+
 iarray(f, ctx::Context, v, args...) = f(ctx, v, args...)
 
 function iloop(f, ctx::Context, ::Loop, l, args...)
