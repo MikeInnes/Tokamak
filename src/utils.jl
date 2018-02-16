@@ -53,3 +53,5 @@ function tolambda(v::IVertex, args::IVertex...)
     get(is, findfirst(args, v), v)
   end) |> DataFlow.λclose |> closure_types
 end
+
+tolambda(v::IVertex, n::Integer) = vertex(Lambda(n, v))

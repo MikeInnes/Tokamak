@@ -48,7 +48,7 @@ end
 function compile_dagger(f::Func, ts...)
   ar, v = infer(f, ts...)
   v = insert_domains(compile_loop(split_loop(v)), ar)
-  v = tolambda(v, [inputnode(n) for n = 1:length(ts)]...)
+  v = tolambda(v, length(ts))
 end
 
 # @tk outer(xs, ys)[i,j] = xs[i] * ys[j]
