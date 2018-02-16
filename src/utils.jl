@@ -45,7 +45,7 @@ function closure_types(v)
          v.inputs...)
 end
 
-function tolambda(v::IVertex, args...)
+function tolambda(v::IVertex, args::IVertex...)
   λ = OLambda(length(args))
   is = [vertex(DataFlow.Split(i), constant(DataFlow.LooseEnd(λ.id)))
         for i = 1:length(args)]
