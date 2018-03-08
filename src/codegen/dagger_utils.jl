@@ -43,9 +43,9 @@ end
 function chslice(xs::DArray, d::ArrayDomain)
   subchunks, subdomains = lookup_parts(chunks(xs), domainchunks(xs), d)
   chsize = size(subdomains)
+  subchunks
   Thunk(subchunks...) do subchunks...
-    OffsetArray(catchunks(reshape(collect(subchunks), chsize)),
-                d.indexes...)
+    catchunks(reshape(collect(subchunks), chsize))
   end
 end
 

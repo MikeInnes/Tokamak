@@ -1,5 +1,4 @@
 using Dagger: DArray, Thunk
-using OffsetArrays
 
 include("dagger_utils.jl")
 
@@ -16,13 +15,12 @@ end
 function split_loop(v::IVertex)
   v = notype(v)
   @assert v.value isa Loop
-  v = DataFlow.mapconst(v) do x
-    x isa Type && x <: Array ? OffsetArray{x.parameters...} : x
-  end
-  is = v.inputs[3:end]
-  out = vcall(DArray{Any,length(is)})
+  is = v[3:end]
+  ls = [vcall(length, i) for i in is]
+  v.inputs[3:end] = [vcall(UnitRange, 1, l) for l in ls]
+  notype(v[2]).inputs[2:end] = ls
   body = tolambda(v, is...)
-  push!(out.inputs, is...)
+  out = vcall(DArray{Any,length(is)}, is...)
   vertex(Loop(), body, out, is...)
 end
 
@@ -39,7 +37,7 @@ function compile_loop(v)
   inputd(i) = inputnode(length(v[1,:])+findfirst(is, i))
   lambda = applybody(lambda) do body
     vars = delete!(arrays(body), body[2])
-    vcall(Thunk, tolambda(vcall(parent, body), vars...),
+    vcall(Thunk, tolambda(body, vars...),
           [vcall(chslice, var, inputd.(vtype(var).xs)...) for var in vars]...)
   end |> argtuple
   striptypes(vcall(DArray{Any,length(is)}, lambda, vcall(tuple, is...)))
