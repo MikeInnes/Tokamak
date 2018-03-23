@@ -1,3 +1,5 @@
+Base.Array{T,N}(dims::Base.OneTo...) where {T,N} = Array{T,N}(map(x -> x.stop, dims))
+
 domain(x::AbstractArray, n) = indices(x, n)
 
 function λopen(v::IVertex)
