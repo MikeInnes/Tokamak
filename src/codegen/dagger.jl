@@ -43,15 +43,10 @@ function compile_loop(v)
   striptypes(vcall(DArray{Any,length(is)}, lambda, vcall(tuple, is...)))
 end
 
-function compile_dagger(f::Func, ts...)
+function daggerv(f::Func, ts...)
   ar, v = infer(f, ts...)
   v = insert_domains(compile_loop(split_loop(v)), ar)
   v = tolambda(v, length(ts))
 end
 
-# @tk outer(xs, ys)[i,j] = xs[i] * ys[j]
-# f = compile_dagger(outer, Vector{Float64}, Vector{Float64}) |> syntax |> eval
-#
-# xs = distribute(1:100, Blocks(10))
-# ys = distribute(1:100, Blocks(10))
-# collect(f(xs, ys))
+dagger(a...) = daggerv(a...) |> syntax |> eval

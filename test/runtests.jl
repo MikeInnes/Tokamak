@@ -29,4 +29,27 @@ cpu_add = cpu(add, Vector{Float64}, Vector{Float64})
 
 end
 
+@testset "Dagger" begin
+
+using Dagger
+
+A = distribute(rand(100,100), Blocks(10,10))
+B = distribute(rand(100,100), Blocks(10,10))
+x = distribute(1:100, Blocks(10))
+y = distribute(1:100, Blocks(10))
+
+dagger_diag = dagger(diag, Matrix{Float64})
+@test dagger_diag(A) |> collect == Base.diag(collect(A))
+
+dagger_outer = dagger(outer, Vector{Float64}, Vector{Float64})
+@test dagger_outer(x,y) == collect(x)*collect(y)'
+
+dagger_trans = dagger(trans, Matrix{Float64})
+@test dagger_trans(A) == A'
+
+dagger_add = dagger(add, Vector{Float64}, Vector{Float64})
+@test dagger_add(x,y) == x+y
+
+end
+
 end
